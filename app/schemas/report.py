@@ -71,3 +71,27 @@ class LLMAnalysis(BaseModel):
     news_sentiment: list[NewsItem]
     swot: SwotAnalysis
     risk: RiskIndicators
+
+
+# --- Comparativa entre dos empresas (caso de uso "compara A con B") ---
+class LLMComparison(BaseModel):
+    """Juicio comparativo generado por el LLM a partir de dos informes."""
+
+    resumen: str = Field(description="Comparación global en 3-5 frases")
+    diferencias_clave: list[str] = Field(
+        default_factory=list, description="Diferencias relevantes (finanzas, riesgo, momentum)"
+    )
+    ganador_financiero: str | None = Field(
+        default=None, description="Empresa con mejor perfil financiero ahora, con motivo"
+    )
+    recomendacion: str = Field(description="Conclusión accionable para un analista")
+
+
+class ComparisonReport(BaseModel):
+    company_a: str
+    company_b: str
+    financials_a: FinancialSnapshot
+    financials_b: FinancialSnapshot
+    comparison: LLMComparison
+    sources: list[str] = Field(default_factory=list)
+    analysis_date: date = Field(default_factory=date.today)

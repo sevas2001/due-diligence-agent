@@ -14,10 +14,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+from app.agent.compare import compare as compare_companies
 from app.agent.graph import run as run_agent
 from app.memory import repository as repo
 from app.memory.db import get_session, init_db
-from app.schemas.report import DueDiligenceReport
+from app.schemas.report import ComparisonReport, DueDiligenceReport
 
 
 @asynccontextmanager
@@ -44,6 +45,11 @@ class CompanyOut(BaseModel):
     sector: str | None
 
 
+class CompareRequest(BaseModel):
+    company_a: str
+    company_b: str
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
@@ -54,6 +60,14 @@ def analyze(req: AnalyzeRequest) -> DueDiligenceReport:
     if not req.company.strip():
         raise HTTPException(status_code=400, detail="company vacío")
     return run_agent(req.company.strip())
+
+
+@app.post("/compare", response_model=ComparisonReport)
+def compare(req: CompareRequest) -> ComparisonReport:
+    a, b = req.company_a.strip(), req.company_b.strip()
+    if not a or not b:
+        raise HTTPException(status_code=400, detail="company_a y company_b requeridos")
+    return compare_companies(a, b)
 
 
 @app.get("/companies", response_model=list[CompanyOut])
