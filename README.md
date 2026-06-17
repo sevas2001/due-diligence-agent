@@ -1,5 +1,8 @@
 # Due Diligence Agent
 
+[![CI](https://github.com/sevas2001/due-diligence-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/sevas2001/due-diligence-agent/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.11-blue)
+
 Agente IA autónomo end-to-end para análisis de empresas españolas: búsqueda web en
 tiempo real, extracción de datos financieros, generación de informes de due diligence
 con LLM y memoria persistente en PostgreSQL.
