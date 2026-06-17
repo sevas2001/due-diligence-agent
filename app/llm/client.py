@@ -39,7 +39,10 @@ def get_llm(model: str | None = None, temperature: float | None = None) -> ChatO
         api_key=settings.llm_api_key,
         base_url=settings.llm_base_url,
         default_headers=_OPENROUTER_HEADERS,
-        timeout=60,
+        # Margen alto de salida: structured output del informe es grande; con un
+        # límite bajo el JSON se trunca y falla el parseo (EOF while parsing).
+        max_tokens=4096,
+        timeout=90,
         max_retries=2,
     )
 

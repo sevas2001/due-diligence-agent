@@ -84,7 +84,7 @@ def analyze(state: AgentState) -> AgentState:
              for n in news],
             ensure_ascii=False, indent=2, default=str,
         ),
-        corporate_text=state.get("corporate_text") or "(no disponible)",
+        corporate_text=(state.get("corporate_text") or "")[:2000] or "(no disponible)",
         prior_summary=state.get("prior_summary") or "(sin análisis previo)",
     )
     analysis: LLMAnalysis = llm.invoke(
