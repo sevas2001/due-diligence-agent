@@ -11,18 +11,46 @@ con LLM y memoria persistente en PostgreSQL.
 
 ---
 
+## Casos de uso
+
+- **"Analiza Iberdrola"** → busca, procesa y devuelve un informe de due diligence.
+- **"Compara Iberdrola con Endesa"** → recupera ambas (o las analiza) y genera comparativa.
+- **"¿Qué empresas del sector energético hemos analizado?"** → consulta la memoria.
+
+---
+
 ## Arquitectura
 
 ```
-Usuario (Streamlit) → FastAPI → Agente LangGraph
-                                      │
-        ┌─────────────────┬──────────┴──────────┬─────────────────┐
-        ▼                 ▼                      ▼                 ▼
-   Tavily (web)     yfinance (finanzas)   PostgreSQL (memoria)   LLM (informe)
+Usuario (Streamlit) → FastAPI → Agente LangGraph → PostgreSQL (memoria)
+```
+
+**Flujo del agente (grafo LangGraph):**
+
+```
+check_memory → fetch_finance → fetch_corporate → fetch_news → analyze → assemble → persist
+     │              │                │                │           │
+  memoria        yfinance        scraper web        Tavily       LLM
 ```
 
 El agente genera un informe estructurado: resumen ejecutivo, situación financiera,
 noticias recientes con sentimiento, DAFO, indicadores de riesgo y fuentes.
+
+**Separación datos / juicio (anti-alucinación):** las cifras vienen de las tools y el
+LLM no las altera; el LLM solo produce el análisis (resumen, DAFO, sentimiento, riesgo).
+
+---
+
+## Endpoints API
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | `/analyze` | Analiza una empresa, devuelve el informe |
+| POST | `/compare` | Compara dos empresas (usa memoria o las analiza) |
+| GET | `/companies?sector=` | Empresas analizadas (filtro por sector) |
+| GET | `/companies/{q}/latest` | Último informe de una empresa |
+| GET | `/companies/{q}/history` | Histórico de informes |
+| GET | `/health` | Healthcheck |
 
 ---
 
@@ -31,14 +59,15 @@ noticias recientes con sentimiento, DAFO, indicadores de riesgo y fuentes.
 ```
 app/
 ├── config.py          # Settings desde .env (pydantic-settings)
-├── llm/               # Cliente LLM agnóstico (OpenRouter, OpenAI-compatible)
-├── tools/             # yfinance, Tavily, scraper
-├── memory/            # Modelos SQLAlchemy + repositorio (PostgreSQL)
-├── agent/             # Grafo de estados LangGraph
-├── schemas/           # Schemas Pydantic del informe
-└── api/               # FastAPI
-frontend/              # App Streamlit
-tests/
+├── llm/client.py      # Cliente LLM agnóstico (OpenRouter, OpenAI-compatible)
+├── tools/             # finance (yfinance), web_search (Tavily), scraper (BeautifulSoup)
+├── memory/            # models + db + repository (SQLAlchemy / PostgreSQL)
+├── agent/             # state, prompts, nodes, graph (LangGraph) + compare
+├── schemas/report.py  # Schemas Pydantic (informe + comparativa)
+└── api/main.py        # FastAPI
+frontend/              # App Streamlit (pestañas Analizar / Comparar)
+scripts/               # Smoke tests: test_llm, test_agent, test_compare, test_memory
+tests/                 # Tests CI-safe (pytest, sin red/keys)
 ```
 
 ---
@@ -61,6 +90,8 @@ y ponla en `LLM_API_KEY`. Cambia de modelo solo editando `LLM_MODEL` en `.env`.
 ```bash
 python scripts/test_llm.py                              # capa LLM
 python scripts/test_agent.py "Iberdrola"                # agente end-to-end (SQLite)
+python scripts/test_compare.py "Iberdrola" "Endesa"     # comparativa end-to-end
+python scripts/test_memory.py                           # memoria (save/query)
 pytest -q                                               # tests CI-safe
 ```
 
@@ -88,5 +119,9 @@ streamlit run frontend/streamlit_app.py    # terminal 2
 - [x] Tools (yfinance, Tavily, scraper)
 - [x] Memoria PostgreSQL
 - [x] Agente LangGraph + prompt del informe
+- [x] Scraper cableado en el grafo (`fetch_corporate`)
+- [x] Comparativa entre empresas (`/compare` + UI)
 - [x] API FastAPI + frontend Streamlit
 - [x] Docker + CI
+
+**Brief cubierto al 100%:** 3 casos de uso + 3 tools (yfinance, Tavily, scraper).
