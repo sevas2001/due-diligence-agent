@@ -15,6 +15,7 @@ from app.schemas.report import (
     LLMAnalysis,
 )
 from app.tools.finance import get_financials
+from app.tools.scraper import fetch_text
 from app.tools.web_search import search_news
 
 
@@ -46,6 +47,20 @@ def fetch_finance(state: AgentState) -> AgentState:
         return {"financials": {}, "errors": [f"finance: {exc}"]}
 
 
+def fetch_corporate(state: AgentState) -> AgentState:
+    """Scrapea la web corporativa (de los datos de yfinance) para contexto extra.
+
+    Best-effort: muchas webs corporativas bloquean bots (403) -> devuelve "".
+    """
+    website = (state.get("financials") or {}).get("website")
+    if not website:
+        return {"corporate_text": ""}
+    try:
+        return {"corporate_text": fetch_text(website, max_chars=3000)}
+    except Exception as exc:  # noqa: BLE001
+        return {"corporate_text": "", "errors": [f"scraper: {exc}"]}
+
+
 def fetch_news(state: AgentState) -> AgentState:
     """Obtiene noticias recientes vía Tavily."""
     try:
@@ -69,6 +84,7 @@ def analyze(state: AgentState) -> AgentState:
              for n in news],
             ensure_ascii=False, indent=2, default=str,
         ),
+        corporate_text=state.get("corporate_text") or "(no disponible)",
         prior_summary=state.get("prior_summary") or "(sin análisis previo)",
     )
     analysis: LLMAnalysis = llm.invoke(
@@ -82,6 +98,10 @@ def assemble(state: AgentState) -> AgentState:
     fin = state.get("financials", {})
     analysis: LLMAnalysis = state["llm_analysis"]
 
+    sources = ["Yahoo Finance (yfinance)", "Tavily"]
+    if state.get("corporate_text"):
+        sources.append(f"Web corporativa ({fin.get('website')})")
+
     report = DueDiligenceReport(
         company_name=fin.get("company_name") or state["company_query"],
         ticker=fin.get("symbol"),
@@ -93,7 +113,7 @@ def assemble(state: AgentState) -> AgentState:
         news=analysis.news_sentiment,
         swot=analysis.swot,
         risk=analysis.risk,
-        sources=["Yahoo Finance (yfinance)", "Tavily"],
+        sources=sources,
     )
     return {"report": report}
 

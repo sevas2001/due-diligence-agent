@@ -17,6 +17,7 @@ class AgentState(TypedDict, total=False):
     # Datos recopilados por las tools
     financials: dict
     news: list[dict]
+    corporate_text: str  # texto scrapeado de la web corporativa
     prior_summary: str | None  # contexto de análisis previo (memoria)
 
     # Salida del LLM y informe final

@@ -33,6 +33,9 @@ EMPRESA CONSULTADA: {company_query}
 === NOTICIAS RECIENTES (fuente: Tavily, últimos 6 meses) ===
 {news}
 
+=== TEXTO DE LA WEB CORPORATIVA (fuente: scraping, puede estar vacío) ===
+{corporate_text}
+
 === CONTEXTO DE ANÁLISIS PREVIO (memoria, puede estar vacío) ===
 {prior_summary}
 

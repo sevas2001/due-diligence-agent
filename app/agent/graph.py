@@ -1,7 +1,8 @@
 """Grafo del agente (LangGraph).
 
 Flujo:
-    check_memory -> fetch_finance -> fetch_news -> analyze -> assemble -> persist
+    check_memory -> fetch_finance -> fetch_corporate -> fetch_news
+                 -> analyze -> assemble -> persist
 
 check_memory recupera contexto previo; las tools recopilan datos; el LLM analiza;
 assemble construye el informe; persist lo guarda en memoria.
@@ -24,6 +25,7 @@ def build_graph():
 
     g.add_node("check_memory", nodes.check_memory)
     g.add_node("fetch_finance", nodes.fetch_finance)
+    g.add_node("fetch_corporate", nodes.fetch_corporate)
     g.add_node("fetch_news", nodes.fetch_news)
     g.add_node("analyze", nodes.analyze)
     g.add_node("assemble", nodes.assemble)
@@ -31,7 +33,8 @@ def build_graph():
 
     g.add_edge(START, "check_memory")
     g.add_edge("check_memory", "fetch_finance")
-    g.add_edge("fetch_finance", "fetch_news")
+    g.add_edge("fetch_finance", "fetch_corporate")
+    g.add_edge("fetch_corporate", "fetch_news")
     g.add_edge("fetch_news", "analyze")
     g.add_edge("analyze", "assemble")
     g.add_edge("assemble", "persist")
